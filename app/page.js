@@ -384,6 +384,13 @@ export default function Page() {
       {warnings.map((w) => (
         <div className="notice" key={w}>{w}</div>
       ))}
+      {warnings.some((w) => /could not reach|timed out|HTTP \d/i.test(w)) && (
+        <div className="notice">
+          That looks like a connection problem rather than a bad query. Open{" "}
+          <a href="/api/diag" target="_blank" rel="noreferrer noopener">/api/diag</a>{" "}
+          to see which services this server can actually reach.
+        </div>
+      )}
       {error && <div className="notice bad">{error}</div>}
 
       <div className="inputs">
