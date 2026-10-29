@@ -78,6 +78,9 @@ export default function Page() {
   const [admetBusy, setAdmetBusy] = useState(false);
 
   const fileRef = useRef(null);
+  const [sdfName, setSdfName] = useState("");
+  const [sdfStructures, setSdfStructures] = useState([]);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     loadRDKit()
@@ -85,30 +88,54 @@ export default function Page() {
       .catch((err) => setRdkitError(String(err.message || err)));
   }, []);
 
-  const handleSdf = useCallback(
-    async (event) => {
-      const file = event.target.files?.[0];
+  /**
+   * Read a structure file. Shared by the file picker and drag-and-drop.
+   *
+   * Keeps every record it finds, not just the first: an SDF usually holds a
+   * series, and which member you want to search from is your choice, not the
+   * file's ordering.
+   */
+  const readStructureFile = useCallback(
+    async (file) => {
       if (!file) return;
       if (!rdkit) {
-        setError("Structure parsing is still loading — try again in a moment.");
+        setError("Structure engine is still loading — try again in a moment.");
         return;
       }
       const text = await file.text();
-      const found = sdfToSmiles(rdkit, text, 10);
+      const found = sdfToSmiles(rdkit, text, 50);
       if (!found.length) {
-        setError("No readable structures in that file.");
+        setError(`No readable structures in ${file.name}.`);
+        setSdfName("");
+        setSdfStructures([]);
         return;
       }
-      setSmiles(found[0]);
       setError(null);
+      setSdfName(file.name);
+      setSdfStructures(found);
+      setSmiles(found[0]);
       setStatus(
         found.length > 1
-          ? `Loaded the first of ${found.length} structures from ${file.name}.`
-          : `Loaded ${file.name}.`
+          ? `${file.name}: ${found.length} structures found — using the first. Pick another below if you want.`
+          : `${file.name}: 1 structure loaded.`
       );
       if (fileRef.current) fileRef.current.value = "";
     },
     [rdkit]
+  );
+
+  const handleSdf = useCallback(
+    (event) => readStructureFile(event.target.files?.[0]),
+    [readStructureFile]
+  );
+
+  const handleDrop = useCallback(
+    (event) => {
+      event.preventDefault();
+      setDragging(false);
+      readStructureFile(event.dataTransfer?.files?.[0]);
+    },
+    [readStructureFile]
   );
 
   const run = useCallback(async () => {
@@ -256,6 +283,13 @@ export default function Page() {
     return sorted;
   }, [rows, admet, rdkit, queryHeavy, sortBy]);
 
+  // Draw whatever is currently in the SMILES box, so you can see at a glance
+  // that the structure you pasted is the one you meant.
+  const queryPreview = useMemo(() => {
+    if (!rdkit || !smiles.trim()) return null;
+    return svg(rdkit, smiles.trim(), 200, 110);
+  }, [rdkit, smiles]);
+
   const drawings = useMemo(() => {
     if (!rdkit || !display.length) return {};
     const out = {};
@@ -352,29 +386,99 @@ export default function Page() {
       ))}
       {error && <div className="notice bad">{error}</div>}
 
-      <div className="panel">
-        <label className="field" htmlFor="smiles">Query structure (SMILES)</label>
-        <textarea
-          id="smiles"
-          value={smiles}
-          onChange={(e) => setSmiles(e.target.value)}
-          spellCheck={false}
-          placeholder="CC(=O)Oc1ccccc1C(=O)O"
-        />
+      <div className="inputs">
+        {/* Box 1 — paste a SMILES */}
+        <div className="panel inputbox">
+          <label className="field" htmlFor="smiles">1 — Paste a SMILES</label>
+          <textarea
+            id="smiles"
+            value={smiles}
+            onChange={(e) => setSmiles(e.target.value)}
+            spellCheck={false}
+            placeholder="CC(=O)Oc1ccccc1C(=O)O"
+            rows={4}
+          />
+          <div className="hint">
+            {rdkit && smiles.trim()
+              ? queryPreview
+                ? "Structure parsed."
+                : "Not a valid SMILES yet."
+              : "One structure. Paste from ChemDraw, PubChem or your own designs."}
+          </div>
+          {queryPreview && (
+            <div
+              className="preview"
+              dangerouslySetInnerHTML={{ __html: queryPreview }}
+            />
+          )}
+        </div>
 
-        <div className="row">
-          <div>
-            <label className="field" htmlFor="sdf">…or upload SDF / MOL</label>
+        {/* Box 2 — upload an SDF or MOL */}
+        <div className="panel inputbox">
+          <label className="field" htmlFor="sdf">2 — Or upload an SDF / MOL file</label>
+          <div
+            className={`dropzone${dragging ? " over" : ""}${rdkit ? "" : " disabled"}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => rdkit && fileRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") fileRef.current?.click();
+            }}
+          >
             <input
               id="sdf"
               ref={fileRef}
               type="file"
-              accept=".sdf,.mol,.txt"
+              accept=".sdf,.mol,.smi,.txt"
               onChange={handleSdf}
               disabled={!rdkit}
-              style={{ fontFamily: "inherit", fontSize: 13 }}
+              hidden
             />
+            {sdfName ? (
+              <>
+                <strong>{sdfName}</strong>
+                <span>
+                  {sdfStructures.length} structure{sdfStructures.length === 1 ? "" : "s"} read
+                  {" · click to replace"}
+                </span>
+              </>
+            ) : (
+              <>
+                <strong>{rdkit ? "Drop a file here" : "Loading structure engine…"}</strong>
+                <span>or click to choose · .sdf, .mol, .smi</span>
+              </>
+            )}
           </div>
+
+          {sdfStructures.length > 1 && (
+            <>
+              <label className="field" style={{ marginTop: 12 }} htmlFor="pick">
+                Search from which structure?
+              </label>
+              <select
+                id="pick"
+                value={smiles}
+                onChange={(e) => setSmiles(e.target.value)}
+              >
+                {sdfStructures.map((s2, i) => (
+                  <option key={`${i}-${s2}`} value={s2}>
+                    {i + 1}. {s2.length > 58 ? `${s2.slice(0, 58)}…` : s2}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="row">
           <div>
             <label className="field" htmlFor="dist">Edit distance</label>
             <select id="dist" value={dist} onChange={(e) => setDist(e.target.value)}>

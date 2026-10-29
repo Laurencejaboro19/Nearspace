@@ -243,3 +243,71 @@ footer.site {
 }
 
 footer.site a { color: var(--mut); }
+
+/* --- two input boxes: paste a SMILES, or upload a file --- */
+
+.inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 760px) {
+  .inputs { grid-template-columns: 1fr; }
+}
+
+.inputbox {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--mut);
+  margin-top: 8px;
+}
+
+.preview {
+  margin-top: 10px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  align-self: flex-start;
+}
+
+.preview svg { display: block; width: 200px; height: 110px; }
+
+.dropzone {
+  border: 1.5px dashed var(--line);
+  border-radius: 8px;
+  padding: 26px 16px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--bg);
+  transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 108px;
+  justify-content: center;
+}
+
+.dropzone:hover:not(.disabled),
+.dropzone:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.dropzone.over {
+  border-color: var(--accent);
+  border-style: solid;
+  background: var(--panel);
+}
+
+.dropzone.disabled { cursor: default; opacity: 0.6; }
+
+.dropzone strong { font-size: 14px; font-weight: 600; }
+.dropzone span { font-size: 12px; color: var(--mut); }
