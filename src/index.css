@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --surface: #05070d;
+    --surface-raised: #0b1120;
+    --line: rgba(120, 160, 220, 0.14);
+    --text: #e6edf8;
+    --text-dim: #93a4c4;
+  }
+
+  :root.light {
+    color-scheme: light;
+    --surface: #f6f8fc;
+    --surface-raised: #ffffff;
+    --line: rgba(20, 40, 80, 0.12);
+    --text: #0d1526;
+    --text-dim: #4a5a78;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background: var(--surface);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  /* Faint engineering grid, so the canvas reads as an instrument rather than a blank page. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(to right, var(--line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+    background-size: 44px 44px;
+    opacity: 0.4;
+    mask-image: radial-gradient(ellipse 120% 80% at 50% 0%, #000 20%, transparent 75%);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 160, 220, 0.3) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(120, 160, 220, 0.28);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  :focus-visible {
+    outline: 2px solid #22d3ee;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border backdrop-blur-sm;
+    background: color-mix(in srgb, var(--surface-raised) 86%, transparent);
+    border-color: var(--line);
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium;
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+    color: var(--text-dim);
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+           disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .btn-primary {
+    @apply btn text-ink-950;
+    background: linear-gradient(135deg, #67e8f9, #22d3ee 55%, #0891b2);
+    box-shadow: 0 10px 30px -12px rgba(34, 211, 238, 0.8);
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    @apply btn border;
+    border-color: var(--line);
+    color: var(--text);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  .field {
+    @apply w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition;
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    border-color: var(--line);
+    color: var(--text);
+  }
+  .field:focus {
+    border-color: #22d3ee;
+    box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
+  }
+
+  .label {
+    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-wider;
+    color: var(--text-dim);
+  }
+
+  .dim {
+    color: var(--text-dim);
+  }
+
+  .structure svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .range {
+    @apply h-1.5 w-full cursor-pointer appearance-none rounded-full;
+    background: linear-gradient(to right, #22d3ee var(--pct, 0%), color-mix(in srgb, var(--text) 14%, transparent) var(--pct, 0%));
+  }
+  .range::-webkit-slider-thumb {
+    @apply h-4 w-4 appearance-none rounded-full border-2 border-ink-950;
+    background: #22d3ee;
+    box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.18);
+  }
+  .range::-moz-range-thumb {
+    @apply h-4 w-4 rounded-full border-2 border-ink-950;
+    background: #22d3ee;
+  }
+}
