@@ -27,6 +27,11 @@ before anything is generated. The box also takes a PubChem CID (`2244`, `CID 224
 When a name is ambiguous it lists the matching entries with their structures and formulas so you can
 pick the one you meant, rather than silently guessing.
 
+**3D on every compound.** Each result card has a **3D** button that opens an interactive viewer —
+drag to rotate, scroll to zoom, right-drag to pan — with stick, ball-and-stick, spacefill and van
+der Waals surface styles, a spin toggle and a reset. The same viewer is in the full compound drawer.
+3Dmol.js is bundled rather than loaded from a CDN, so it still works on networks that block them.
+
 **Scaffold detection.** The Bemis–Murcko core is found by iteratively stripping terminal non-ring
 atoms. What remains is the ring systems and their linkers. Every acyclic substituent hanging off
 that core becomes a numbered R-site (R1, R2 …) you can see and lock.
@@ -131,8 +136,17 @@ src/components/   input, name search, results grid, detail drawer, 3D viewer, fi
 
 Chemistry is [OpenChemLib](https://github.com/cheminfo/openchemlib-js) (pure JavaScript — structure
 editing, depiction, descriptors, SMARTS, conformers). 3D display is
-[3Dmol.js](https://3dmol.csb.pitt.edu/). Generation is deterministic for a given query, mode, count
+[3Dmol.js](https://3dmol.csb.pitt.edu/), bundled as a lazy chunk so its weight is only paid when a
+3D view is actually opened. Generation is deterministic for a given query, mode, count
 and seed.
+
+### A note on depiction colours
+
+OpenChemLib draws for paper: bonds and carbon labels come out as `rgb(0,0,0)`, which is invisible on
+the dark canvas. `depict()` remaps the palette after rendering, and `Structure` follows the live
+theme through a small store rather than a prop drilled through every list and drawer, so a depiction
+rendered after a theme change is still correct. There are tests asserting that no pure black
+survives in dark mode and that light mode keeps the original palette — this was a real bug.
 
 ### A note on the PubChem integration
 

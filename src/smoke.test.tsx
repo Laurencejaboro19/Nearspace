@@ -59,10 +59,18 @@ describe("ui smoke", () => {
   it("renders an analog card with real generated data", () => {
     const result = generate({ smiles: "CC(=O)Nc1ccc(O)cc1", mode: "explore", count: 3, parentName: "paracetamol" });
     const html = renderToString(
-      <AnalogCard analog={result.analogs[0]} selected={false} onSelect={() => {}} onOpen={() => {}} />,
+      <AnalogCard
+        analog={result.analogs[0]}
+        selected={false}
+        onSelect={() => {}}
+        onOpen={() => {}}
+        onOpen3D={() => {}}
+      />,
     );
     expect(html).toContain(result.analogs[0].code);
     expect(html).toContain("QED");
+    // the 3D affordance must be on the card itself, not buried in the drawer
+    expect(html).toContain(`View ${result.analogs[0].code} in 3D`);
   });
 
   it("renders the filter panel", () => {

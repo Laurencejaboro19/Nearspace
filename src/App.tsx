@@ -17,16 +17,18 @@ import {
 import InputPanel from "./components/InputPanel";
 import AnalogCard from "./components/AnalogCard";
 import DetailDrawer from "./components/DetailDrawer";
+import Viewer3DModal from "./components/Viewer3DModal";
 import Filters, { DEFAULT_FILTERS, FilterState, SortKey, applyFilters } from "./components/Filters";
 import Structure from "./components/Structure";
 import type { Analog, GenerateResult, Mode, Progress } from "./chem/generate";
 import type { WorkerResponse } from "./workers/generate.worker";
-import { download, toCSV, toSDF, toSMI, toZip } from "./chem/export";
+import { analogRecord, download, ensure3DResources, toCSV, toSDF, toSMI, toZip } from "./chem/export";
+import { initialDark, setDark, useIsDark } from "./theme";
 
 const PAGE = 48;
 
 export default function App() {
-  const [dark, setDark] = useState(true);
+  const dark = useIsDark();
   const [smiles, setSmiles] = useState("");
   const [parentName, setParentName] = useState("");
   const [mode, setMode] = useState<Mode>("explore");
@@ -41,6 +43,8 @@ export default function App() {
   const [sort, setSort] = useState<SortKey>("score");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detail, setDetail] = useState<Analog | null>(null);
+  const [view3D, setView3D] = useState<Analog | null>(null);
+  const [downloadingOne, setDownloadingOne] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
@@ -50,10 +54,8 @@ export default function App() {
   const workerRef = useRef<Worker | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("light", !dark);
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
+  // Apply the saved preference once on mount.
+  useEffect(() => setDark(initialDark()), []);
 
   useEffect(() => () => workerRef.current?.terminate(), []);
 
@@ -165,6 +167,23 @@ export default function App() {
     }
   }
 
+  async function downloadOne(analog: Analog) {
+    if (!result) return;
+    setDownloadingOne(true);
+    try {
+      await ensure3DResources();
+      download(
+        `${analog.code}.sdf`,
+        analogRecord(analog, { threeD: true, parentSmiles: result.parent.smiles }),
+        "chemical/x-mdl-sdfile",
+      );
+    } catch {
+      setError("Could not build that SDF.");
+    } finally {
+      setDownloadingOne(false);
+    }
+  }
+
   const busy = progress !== null;
 
   /* --------------------------------------------------------------------- UI */
@@ -196,7 +215,7 @@ export default function App() {
               <Github className="h-4 w-4" />
             </a>
             <button
-              onClick={() => setDark((d) => !d)}
+              onClick={() => setDark(!dark)}
               className="rounded-lg p-2 transition hover:bg-white/10"
               aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
             >
@@ -374,6 +393,7 @@ export default function App() {
                           })
                         }
                         onOpen={setDetail}
+                        onOpen3D={setView3D}
                       />
                     ))}
                   </div>
@@ -498,6 +518,15 @@ vina --receptor target.pdbqt --ligand lig1.pdbqt \\
           </div>
         </div>
       )}
+
+      <Viewer3DModal
+        analog={view3D}
+        parentSmiles={result?.parent.smiles ?? ""}
+        onClose={() => setView3D(null)}
+        onOpenDetails={setDetail}
+        onDownload={downloadOne}
+        downloading={downloadingOne}
+      />
 
       <DetailDrawer
         analog={detail}

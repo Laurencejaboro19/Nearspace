@@ -59,6 +59,26 @@ describe("structure handling", () => {
     expect(svg).toContain("</svg>");
   });
 
+  it("draws nothing in pure black on the dark canvas", () => {
+    // OpenChemLib draws for paper and emits rgb(0,0,0) bonds, which are invisible on a near-black
+    // background. Every depiction must be remapped; this caught a real regression.
+    const dark = depict(fromSmiles(DRUGS.celecoxib), { dark: true });
+    expect(dark).not.toMatch(/rgb\(0,\s*0,\s*0\)/);
+    expect(dark).not.toContain("#000000");
+    expect(dark).toContain("rgb(201,214,238)");
+
+    // Light mode must keep the original, legible-on-white palette.
+    const light = depict(fromSmiles(DRUGS.celecoxib), { dark: false });
+    expect(light).toMatch(/rgb\(0,\s*0,\s*0\)/);
+  });
+
+  it("keeps heteroatom colours distinguishable in dark mode", () => {
+    const svg = depict(fromSmiles("OC(=O)c1ccccc1NS(=O)(=O)CF"), { dark: true });
+    // nitrogen and oxygen must not collapse into the bond colour
+    expect(svg).toContain("rgb(125,163,255)");
+    expect(svg).toContain("rgb(255,112,112)");
+  });
+
   it("scores similarity sensibly", () => {
     const a = fingerprint(fromSmiles(DRUGS.celecoxib));
     const b = fingerprint(fromSmiles("CC1=CC=C(C=C1)C1=CC(=NN1C1=CC=C(C=C1)S(N)(=O)=O)C(F)F"));

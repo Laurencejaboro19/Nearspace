@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { depict, fromSmiles } from "../chem/mol";
+import { useIsDark } from "../theme";
 
 interface Props {
   smiles: string;
   width?: number;
   height?: number;
   highlight?: number[];
+  /** Defaults to following the page theme. */
   dark?: boolean;
   /** Defer drawing until the card scrolls into view — essential at 1000 compounds. */
   lazy?: boolean;
@@ -34,10 +36,12 @@ export default function Structure({
   width = 300,
   height = 210,
   highlight = [],
-  dark = true,
+  dark,
   lazy = false,
   className = "",
 }: Props) {
+  const themeIsDark = useIsDark();
+  const isDark = dark ?? themeIsDark;
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(!lazy);
 
@@ -57,8 +61,8 @@ export default function Structure({
   }, [lazy, visible]);
 
   const svg = useMemo(
-    () => (visible ? render(smiles, width, height, highlight, dark) : ""),
-    [visible, smiles, width, height, highlight, dark],
+    () => (visible ? render(smiles, width, height, highlight, isDark) : ""),
+    [visible, smiles, width, height, highlight, isDark],
   );
 
   return (

@@ -243,6 +243,22 @@ export interface DepictOptions {
   id?: string;
 }
 
+/**
+ * Palette fixes for a dark canvas.
+ *
+ * OpenChemLib draws for paper: bonds and carbon labels come out as `rgb(0,0,0)` and nitrogen as a
+ * deep blue, both of which vanish against a near-black background. Colours are remapped after the
+ * fact rather than drawn differently, because the depiction code itself has no theme hook.
+ */
+const DARK_REMAP: [RegExp, string][] = [
+  [/rgb\(0,\s*0,\s*0\)/g, "rgb(201,214,238)"], // bonds, carbon and hydrogen labels
+  [/rgb\(48,\s*80,\s*248\)/g, "rgb(125,163,255)"], // nitrogen
+  [/rgb\(255,\s*13,\s*13\)/g, "rgb(255,112,112)"], // oxygen
+  [/rgb\(255,\s*181,\s*0\)/g, "rgb(255,206,84)"], // sulfur
+  [/rgb\(144,\s*224,\s*80\)/g, "rgb(163,230,53)"], // fluorine
+  [/rgb\(31,\s*240,\s*31\)/g, "rgb(110,231,183)"], // chlorine
+];
+
 /** Inline SVG depiction. Highlighted atoms are coloured, which is how changes are shown. */
 export function depict(m: Mol, opts: DepictOptions = {}): string {
   const { width = 320, height = 240, highlight = [], dark = true, id } = opts;
@@ -253,20 +269,14 @@ export function depict(m: Mol, opts: DepictOptions = {}): string {
     }
   }
   const svgId = id ?? `ns${Math.random().toString(36).slice(2, 9)}`;
-  const svg = copy.toSVG(width, height, svgId, {
+  let svg = copy.toSVG(width, height, svgId, {
     suppressChiralText: true,
     autoCrop: true,
     autoCropMargin: 6,
     strokeWidth: 1.3,
   });
-  // OCL draws in black; recolour for a dark canvas without touching highlight colours.
-  return dark
-    ? svg
-        .replace(/stroke="#000000"/g, 'stroke="#c9d6ee"')
-        .replace(/fill="#000000"/g, 'fill="#c9d6ee"')
-        .replace(/stroke:#000000/g, "stroke:#c9d6ee")
-        .replace(/fill:#000000/g, "fill:#c9d6ee")
-    : svg;
+  if (dark) for (const [pattern, replacement] of DARK_REMAP) svg = svg.replace(pattern, replacement);
+  return svg;
 }
 
 const indexer = new SSSearcherWithIndex();

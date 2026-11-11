@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { AlertTriangle, Check, Copy } from "lucide-react";
+import { AlertTriangle, Box, Check, Copy } from "lucide-react";
 import Structure from "./Structure";
 import type { Analog } from "../chem/generate";
 
@@ -8,6 +8,7 @@ interface Props {
   selected: boolean;
   onSelect: (code: string, next: boolean) => void;
   onOpen: (analog: Analog) => void;
+  onOpen3D: (analog: Analog) => void;
 }
 
 function ScoreRing({ value }: { value: number }) {
@@ -32,7 +33,7 @@ function ScoreRing({ value }: { value: number }) {
   );
 }
 
-function AnalogCard({ analog, selected, onSelect, onOpen }: Props) {
+function AnalogCard({ analog, selected, onSelect, onOpen, onOpen3D }: Props) {
   const [copied, setCopied] = useState(false);
   const d = analog.assessment.descriptors;
 
@@ -61,9 +62,20 @@ function AnalogCard({ analog, selected, onSelect, onOpen }: Props) {
         </span>
       )}
 
-      <button onClick={() => onOpen(analog)} className="block w-full bg-white/[0.02] px-3 pb-1 pt-7 text-left">
-        <Structure smiles={analog.smiles} width={300} height={190} highlight={analog.changedAtoms} lazy />
-      </button>
+      <div className="relative bg-white/[0.02]">
+        <button onClick={() => onOpen(analog)} className="block w-full px-3 pb-1 pt-7 text-left">
+          <Structure smiles={analog.smiles} width={300} height={190} highlight={analog.changedAtoms} lazy />
+        </button>
+        <button
+          onClick={() => onOpen3D(analog)}
+          className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold backdrop-blur transition hover:border-accent hover:bg-accent hover:text-ink-950"
+          style={{ borderColor: "var(--line)", background: "color-mix(in srgb, var(--surface-raised) 85%, transparent)" }}
+          title={`Rotate ${analog.code} in 3D`}
+          aria-label={`View ${analog.code} in 3D`}
+        >
+          <Box className="h-3.5 w-3.5" /> 3D
+        </button>
+      </div>
 
       <div className="flex flex-1 flex-col gap-2 p-3 pt-2">
         <button onClick={() => onOpen(analog)} className="text-left">

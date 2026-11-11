@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "3dmol": "^2.5.5",
     "jszip": "^3.10.1",
     "lucide-react": "^0.456.0",
     "openchemlib": "^9.25.2",
