@@ -225,7 +225,7 @@ export default function App() {
                 2D and 3D, scored, and exported as a docking-ready SDF.
               </p>
               <div className="mt-6 flex flex-wrap gap-2 text-[11px]">
-                {["No account", "No API keys", "Nothing uploaded", "Open source"].map((t) => (
+                {["Search by drug name", "No account", "No API keys", "Open source"].map((t) => (
                   <span key={t} className="chip">{t}</span>
                 ))}
               </div>

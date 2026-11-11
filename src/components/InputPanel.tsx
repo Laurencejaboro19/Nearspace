@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, Check, FlaskConical, Sparkles, Upload } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { AlertCircle, Check, FlaskConical, Keyboard, Search, Sparkles, Upload } from "lucide-react";
 import Structure from "./Structure";
+import NameSearch from "./NameSearch";
 import { analyseSites, fromMolfile, fromSmiles, toSmiles } from "../chem/mol";
 import type { Mode } from "../chem/generate";
 
@@ -40,6 +41,8 @@ export default function InputPanel(props: Props) {
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"structure" | "name">("name");
+  const [resolvedCid, setResolvedCid] = useState<number | null>(null);
 
   const parsed = useMemo(() => {
     const value = smiles.trim();
@@ -62,6 +65,7 @@ export default function InputPanel(props: Props) {
 
   async function readFile(file: File) {
     setFileError(null);
+    setResolvedCid(null);
     try {
       const text = await file.text();
       if (/\.(sdf|mol)$/i.test(file.name) || text.includes("V2000") || text.includes("V3000")) {
@@ -82,8 +86,41 @@ export default function InputPanel(props: Props) {
 
   return (
     <div className="space-y-5">
+      {/* --------------------------------------------------------- input method */}
+      <div className="flex gap-1 rounded-xl border p-1" style={{ borderColor: "var(--line)" }} role="tablist">
+        {(
+          [
+            ["name", "Search by name", Search],
+            ["structure", "Paste or upload", Keyboard],
+          ] as const
+        ).map(([id, label, Icon]) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={tab === id}
+            onClick={() => setTab(id)}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+              tab === id ? "bg-accent text-ink-950" : "dim hover:bg-white/5"
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" /> {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "name" && (
+        <NameSearch
+          onResolved={(resolvedSmiles, name, cid) => {
+            onSmiles(resolvedSmiles);
+            props.onParentName(name);
+            setResolvedCid(cid);
+            setTab("structure");
+          }}
+        />
+      )}
+
       {/* ---------------------------------------------------------- structure in */}
-      <div>
+      <div className={tab === "structure" ? "" : "hidden"}>
         <label className="label" htmlFor="smiles">
           Query structure
         </label>
@@ -104,7 +141,10 @@ export default function InputPanel(props: Props) {
           <textarea
             id="smiles"
             value={smiles}
-            onChange={(e) => onSmiles(e.target.value)}
+            onChange={(e) => {
+              onSmiles(e.target.value);
+              setResolvedCid(null);
+            }}
             spellCheck={false}
             rows={3}
             placeholder="Paste a SMILES string, or drop a .sdf / .mol / .smi file here"
@@ -133,6 +173,7 @@ export default function InputPanel(props: Props) {
               onClick={() => {
                 onSmiles(ex.smiles);
                 props.onParentName(ex.name.toLowerCase());
+                setResolvedCid(null);
               }}
               className="chip transition hover:bg-accent/15 hover:text-accent"
             >
@@ -158,8 +199,21 @@ export default function InputPanel(props: Props) {
         <div className="panel animate-fade-up p-4">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wider dim">Detected scaffold</p>
-            <span className="chip">
-              <Check className="h-3 w-3 text-pass" /> {parsed.atoms} atoms
+            <span className="flex items-center gap-1.5">
+              {resolvedCid !== null && (
+                <a
+                  href={`https://pubchem.ncbi.nlm.nih.gov/compound/${resolvedCid}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="chip font-mono transition hover:bg-accent/15 hover:text-accent"
+                  title="Resolved from PubChem"
+                >
+                  CID {resolvedCid}
+                </a>
+              )}
+              <span className="chip">
+                <Check className="h-3 w-3 text-pass" /> {parsed.atoms} atoms
+              </span>
             </span>
           </div>
           <div className="grid grid-cols-2 gap-3">

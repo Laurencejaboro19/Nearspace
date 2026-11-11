@@ -8,6 +8,7 @@
  * there. Nothing is ever invented.
  */
 import type { AppliedTransform } from "./generate";
+import { PUG_REST } from "./pubchem";
 
 /** Stable 6-character hash of a canonical scaffold id, used as the series code. */
 export function seriesCode(canonicalScaffold: string): string {
@@ -57,16 +58,21 @@ export interface PubChemHit {
   title?: string;
 }
 
-const PUBCHEM = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
-
 /**
  * Look a structure up by SMILES. Returns null when PubChem does not have it — which is the normal
  * answer for a freshly generated analog, and is reported as "novel (not in PubChem)".
+ *
+ * Sent as a POST form body rather than in the URL path: SMILES routinely contain `/`, `\\`, `#` and
+ * `+`, which PUG-REST mis-reads in a path even when percent-encoded.
  */
 export async function lookupPubChem(smiles: string, signal?: AbortSignal): Promise<PubChemHit | null> {
   try {
-    const url = `${PUBCHEM}/compound/smiles/${encodeURIComponent(smiles)}/property/IUPACName,Title/JSON`;
-    const res = await fetch(url, { signal });
+    const res = await fetch(`${PUG_REST}/compound/smiles/property/IUPACName,Title/JSON`, {
+      method: "POST",
+      signal,
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: new URLSearchParams({ smiles }).toString(),
+    });
     if (!res.ok) return null;
     const data = await res.json();
     const row = data?.PropertyTable?.Properties?.[0];

@@ -1,13 +1,13 @@
 # Nearspace
 
-Give it one structure. It finds the scaffold, keeps it, and generates up to 1000 analogs by
-swapping functional groups and growing side chains taken from clinically approved drugs — each one
-named, drawn in 2D and 3D, scored, and exported as a docking-ready SDF.
+Type a drug name, or give it a structure. Nearspace finds the scaffold, keeps it, and generates up
+to 1000 analogs by swapping functional groups and growing side chains taken from clinically approved
+drugs — each one named, drawn in 2D and 3D, scored, and exported as a docking-ready SDF.
 
 Built for SAR: generate a series, filter it, download the SDF, dock it against your target.
 
 ```
-SMILES / SDF / MOL in
+drug name · SMILES · SDF / MOL in
       ↓  Bemis–Murcko scaffold + R-group and open-position detection
       ↓  edit space: R-group swaps · bioisosteres · nitrogen scan · side-chain growth
       ↓  sanitisation, InChI-free canonical dedupe, descriptors, QED, SA proxy, alerts
@@ -20,6 +20,12 @@ Everything runs in the browser. No account, no API keys, nothing uploaded, no se
 chemistry — which is also why it costs nothing to host.
 
 ## What it actually does
+
+**Name search.** If you do not have a structure to hand, type the drug's name. Nearspace resolves it
+against PubChem from the browser, with type-ahead suggestions, and shows you the structure it found
+before anything is generated. The box also takes a PubChem CID (`2244`, `CID 2244`) or an InChIKey.
+When a name is ambiguous it lists the matching entries with their structures and formulas so you can
+pick the one you meant, rather than silently guessing.
 
 **Scaffold detection.** The Bemis–Murcko core is found by iteratively stripping terminal non-ring
 atoms. What remains is the ring systems and their linkers. Every acyclic substituent hanging off
@@ -112,6 +118,7 @@ Deploys to Vercel as a static site with no configuration beyond the Vite preset.
 ```
 src/chem/
   mol.ts          parsing, cloning, scaffold, edits, depiction, similarity, SMARTS
+  pubchem.ts      name / CID / InChIKey lookup and structure resolution
   transforms.ts   the approved-drug fragment library and the nitrogen scan
   properties.ts   descriptors, rule panels, QED, SA heuristic, structural alerts
   score.ts        the composite ranking and its weights
@@ -119,13 +126,23 @@ src/chem/
   generate.ts     the engine: edit space → seeded sampling → validation → scoring
   export.ts       SDF (2D/3D), CSV, SMILES, ZIP
 src/workers/      generation runs off the main thread
-src/components/   input, results grid, detail drawer, 3D viewer, filters
+src/components/   input, name search, results grid, detail drawer, 3D viewer, filters
 ```
 
 Chemistry is [OpenChemLib](https://github.com/cheminfo/openchemlib-js) (pure JavaScript — structure
 editing, depiction, descriptors, SMARTS, conformers). 3D display is
 [3Dmol.js](https://3dmol.csb.pitt.edu/). Generation is deterministic for a given query, mode, count
 and seed.
+
+### A note on the PubChem integration
+
+PubChem has renamed its SMILES *properties* over time (`CanonicalSMILES` → `ConnectivitySMILES`,
+`IsomericSMILES` → `SMILES`), and asking PUG-REST for a property it no longer recognises fails the
+whole request. So structure resolution never goes through the property endpoint: it fetches the 2D
+SDF record and parses it locally with the same code path that reads an uploaded file. Property calls
+are used only for human-facing labels (title, formula, IUPAC name), and every one of them is allowed
+to fail without breaking a search. Lookups by SMILES are sent as POST form bodies, because SMILES
+routinely contain `/`, `\\`, `#` and `+`, which PUG-REST mis-reads in a URL path even percent-encoded.
 
 ### A note on why the chemistry is written this way
 

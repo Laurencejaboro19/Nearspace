@@ -4,6 +4,8 @@ import App from "./App";
 import Structure from "./components/Structure";
 import AnalogCard from "./components/AnalogCard";
 import Filters, { DEFAULT_FILTERS, applyFilters } from "./components/Filters";
+import NameSearch from "./components/NameSearch";
+import InputPanel from "./components/InputPanel";
 import { generate } from "./chem/generate";
 
 describe("ui smoke", () => {
@@ -12,6 +14,41 @@ describe("ui smoke", () => {
     expect(html).toContain("NEARSPACE");
     expect(html).toContain("Keep the scaffold");
     expect(html).toContain("Generate");
+  });
+
+  it("offers name search as the default way in", () => {
+    const html = renderToString(<App />);
+    expect(html).toContain("Search by name");
+    expect(html).toContain("Paste or upload");
+    expect(html).toContain("celecoxib");
+  });
+
+  it("renders the name search box with its suggestions", () => {
+    const html = renderToString(<NameSearch onResolved={() => {}} />);
+    expect(html).toContain("Search by name");
+    expect(html).toContain("CID or InChIKey");
+    expect(html).toContain("Imatinib");
+  });
+
+  it("renders the input panel on the structure tab with a parsed query", () => {
+    const html = renderToString(
+      <InputPanel
+        smiles="CC(=O)Oc1ccccc1C(=O)O"
+        onSmiles={() => {}}
+        parentName="aspirin"
+        onParentName={() => {}}
+        mode="explore"
+        onMode={() => {}}
+        count={100}
+        onCount={() => {}}
+        lockedSites={[]}
+        onToggleLock={() => {}}
+        onGenerate={() => {}}
+        busy={false}
+      />,
+    );
+    expect(html).toContain("Detected scaffold");
+    expect(html).toContain("Generate 100 analogs");
   });
 
   it("renders a structure to inline SVG", () => {
